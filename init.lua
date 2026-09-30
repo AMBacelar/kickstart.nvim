@@ -816,6 +816,24 @@ do
     vim.lsp.config(name, server)
     vim.lsp.enable(name)
   end
+
+  -- Dart: the language server ships inside the Dart SDK, so Mason cannot install it.
+  -- Prefer the project's fvm-pinned SDK, then fvm's global default, then `dart` on PATH.
+  vim.lsp.config('dartls', {
+    cmd = function(dispatchers, config)
+      local root = config.root_dir
+      local dart = 'dart'
+      local fvm_dir = root and vim.fs.find('.fvm', { path = root, upward = true, type = 'directory' })[1]
+      for _, candidate in ipairs { fvm_dir and (fvm_dir .. '/flutter_sdk/bin/dart') or false, vim.fn.expand '~/fvm/default/bin/dart' } do
+        if candidate and vim.uv.fs_stat(candidate) then
+          dart = candidate
+          break
+        end
+      end
+      return vim.lsp.rpc.start({ dart, 'language-server', '--protocol=lsp' }, dispatchers, { cwd = root })
+    end,
+  })
+  vim.lsp.enable 'dartls'
 end
 
 -- ============================================================
@@ -850,6 +868,12 @@ do
       --
       -- You can use 'stop_after_first' to run the first available formatter from the list
       -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      javascript = { 'prettierd' },
+      javascriptreact = { 'prettierd' },
+      typescript = { 'prettierd' },
+      typescriptreact = { 'prettierd' },
+      json = { 'prettierd' },
+      css = { 'prettierd' },
     },
   }
 
@@ -868,12 +892,6 @@ do
   vim.pack.add { { src = gh 'L3MON4D3/LuaSnip', version = vim.version.range '2.*' } }
   require('luasnip').setup {}
 
-      javascript = { 'prettierd' },
-      javascriptreact = { 'prettierd' },
-      typescript = { 'prettierd' },
-      typescriptreact = { 'prettierd' },
-      json = { 'prettierd' },
-      css = { 'prettierd' },
   -- `friendly-snippets` contains a variety of premade snippets.
   --    See the README about individual language/framework/plugin snippets:
   --    https://github.com/rafamadriz/friendly-snippets
@@ -958,7 +976,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'javascript', 'typescript', 'tsx', 'json', 'css' }
+  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'javascript', 'typescript', 'tsx', 'json', 'css', 'dart' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
